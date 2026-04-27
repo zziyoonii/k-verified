@@ -6,6 +6,8 @@ const POPULAR_CITIES = [
   { name: "도쿄", emoji: "🇯🇵", country: "일본" },
   { name: "오사카", emoji: "🇯🇵", country: "일본" },
   { name: "파리", emoji: "🇫🇷", country: "프랑스" },
+  { name: "상하이", emoji: "🇨🇳", country: "중국" },
+  { name: "푸꾸옥", emoji: "🇻🇳", country: "베트남" },
 ];
 
 const POPULAR_SEARCHES = [
@@ -14,7 +16,8 @@ const POPULAR_SEARCHES = [
   { dest: "도쿄", cat: "라멘" },
   { dest: "오사카", cat: "이자카야" },
   { dest: "파리", cat: "카페" },
-  { dest: "싱가포르", cat: "호커센터" },
+  { dest: "상하이", cat: "맛집" },
+  { dest: "푸꾸옥", cat: "해산물" },
 ];
 
 export default function HomePage() {
