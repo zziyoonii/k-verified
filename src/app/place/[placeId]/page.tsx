@@ -1,21 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PlaceDetail } from "@/types";
 import Badge from "@/components/Badge";
 import ReviewSummary from "@/components/ReviewSummary";
+import { getPlaceDetails } from "@/lib/google-places";
+import { summarizeKoreanReviews } from "@/lib/gemini";
 
 interface PlacePageProps {
   params: { placeId: string };
   searchParams: { q?: string };
-}
-
-async function fetchPlaceDetail(placeId: string): Promise<PlaceDetail | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/place/${placeId}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  return res.json();
 }
 
 function PriceLevel({ level }: { level: number }) {
@@ -28,12 +20,21 @@ function PriceLevel({ level }: { level: number }) {
   );
 }
 
-export default async function PlacePage({
-  params,
-  searchParams,
-}: PlacePageProps) {
-  const place = await fetchPlaceDetail(params.placeId);
+export default async function PlacePage({ params, searchParams }: PlacePageProps) {
+  let place;
+  try {
+    place = await getPlaceDetails(params.placeId);
+  } catch {
+    notFound();
+  }
+
   if (!place) notFound();
+
+  if (place.koreanReviews.length > 0) {
+    place.summary = await summarizeKoreanReviews(
+      place.koreanReviews.map((r) => r.text)
+    );
+  }
 
   const backHref = searchParams.q
     ? `/search?q=${encodeURIComponent(searchParams.q)}`
