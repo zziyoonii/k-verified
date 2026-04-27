@@ -1,9 +1,7 @@
 import { Place, PlaceDetail, KoreanReview } from "@/types";
 import { isKoreanReview, assignBadge } from "./korean-detector";
-import { getCached, setCached } from "./supabase";
 
 const PLACES_BASE_URL = "https://maps.googleapis.com/maps/api/place";
-const CACHE_TTL = 86400; // 24 hours
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_PLACES_API_KEY;
@@ -65,35 +63,26 @@ function toPlace(p: GooglePlace, koreanReviews: KoreanReview[]): Place {
 }
 
 export async function searchPlaces(query: string): Promise<Place[]> {
-  const cacheKey = `search:${query}`;
-  const cached = await getCached<Place[]>(cacheKey);
-  if (cached) return cached;
-
   const url = new URL(`${PLACES_BASE_URL}/textsearch/json`);
   url.searchParams.set("query", query);
   url.searchParams.set("language", "ko");
   url.searchParams.set("key", getApiKey());
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    next: { revalidate: 86400 },
+  });
   if (!res.ok) throw new Error(`Places text search failed: ${res.status}`);
 
   const json = await res.json();
   const results: GooglePlace[] = json.results ?? [];
 
-  const places = results.slice(0, 20).map((p) => {
+  return results.slice(0, 20).map((p) => {
     const koreanReviews = extractKoreanReviews(p.reviews ?? []);
     return toPlace(p, koreanReviews);
   });
-
-  await setCached(cacheKey, places, CACHE_TTL);
-  return places;
 }
 
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
-  const cacheKey = `place:${placeId}`;
-  const cached = await getCached<PlaceDetail>(cacheKey);
-  if (cached) return cached;
-
   const fields = [
     "place_id",
     "name",
@@ -116,7 +105,9 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   url.searchParams.set("language", "ko");
   url.searchParams.set("key", getApiKey());
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    next: { revalidate: 86400 },
+  });
   if (!res.ok) throw new Error(`Place details failed: ${res.status}`);
 
   const json = await res.json();
@@ -125,7 +116,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   const koreanReviews = extractKoreanReviews(p.reviews ?? []);
   const base = toPlace(p, koreanReviews);
 
-  const detail: PlaceDetail = {
+  return {
     ...base,
     koreanReviews,
     summary: null,
@@ -134,15 +125,4 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
     openingHours: p.opening_hours?.weekday_text,
     priceLevel: p.price_level,
   };
-
-  await setCached(cacheKey, detail, CACHE_TTL);
-  return detail;
-}
-
-export function getPhotoUrl(photoReference: string, maxWidth = 400): string {
-  const url = new URL(`${PLACES_BASE_URL}/photo`);
-  url.searchParams.set("maxwidth", String(maxWidth));
-  url.searchParams.set("photoreference", photoReference);
-  url.searchParams.set("key", getApiKey());
-  return url.toString();
 }
