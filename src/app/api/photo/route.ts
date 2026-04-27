@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
 
-  const url = new URL("https://maps.googleapis.com/maps/api/place/photo");
-  url.searchParams.set("maxwidth", w);
-  url.searchParams.set("photoreference", ref);
+  // Places API (New) photo format: places/{placeId}/photos/{photoRef}
+  const url = new URL(`https://places.googleapis.com/v1/${ref}/media`);
+  url.searchParams.set("maxWidthPx", w);
   url.searchParams.set("key", apiKey);
 
   const res = await fetch(url.toString());

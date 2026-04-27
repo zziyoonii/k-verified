@@ -1,7 +1,7 @@
 import { Place, PlaceDetail, KoreanReview } from "@/types";
 import { isKoreanReview, assignBadge } from "./korean-detector";
 
-const PLACES_BASE_URL = "https://maps.googleapis.com/maps/api/place";
+const BASE = "https://places.googleapis.com/v1";
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_PLACES_API_KEY;
@@ -9,115 +9,147 @@ function getApiKey(): string {
   return key;
 }
 
-interface GoogleReview {
-  author_name: string;
+interface NewReview {
+  relativePublishTimeDescription: string;
   rating: number;
-  text: string;
-  time: number;
-  relative_time_description: string;
-  original_language?: string;
+  text?: { text: string; languageCode: string };
+  originalText?: { text: string; languageCode: string };
+  authorAttribution?: { displayName: string };
+  publishTime?: string;
 }
 
-interface GooglePlace {
-  place_id: string;
-  name: string;
-  formatted_address: string;
+interface NewPlace {
+  id: string;
+  displayName?: { text: string };
+  formattedAddress?: string;
   rating?: number;
-  user_ratings_total?: number;
-  photos?: { photo_reference: string }[];
-  types: string[];
-  geometry: { location: { lat: number; lng: number } };
-  reviews?: GoogleReview[];
-  formatted_phone_number?: string;
-  website?: string;
-  opening_hours?: { weekday_text: string[] };
-  price_level?: number;
+  userRatingCount?: number;
+  photos?: { name: string }[];
+  types?: string[];
+  location?: { latitude: number; longitude: number };
+  reviews?: NewReview[];
+  nationalPhoneNumber?: string;
+  websiteUri?: string;
+  regularOpeningHours?: { weekdayDescriptions: string[] };
+  priceLevel?: string;
 }
 
-function extractKoreanReviews(reviews: GoogleReview[]): KoreanReview[] {
+const PRICE_MAP: Record<string, number> = {
+  PRICE_LEVEL_FREE: 0,
+  PRICE_LEVEL_INEXPENSIVE: 1,
+  PRICE_LEVEL_MODERATE: 2,
+  PRICE_LEVEL_EXPENSIVE: 3,
+  PRICE_LEVEL_VERY_EXPENSIVE: 4,
+};
+
+function extractKoreanReviews(reviews: NewReview[]): KoreanReview[] {
   return reviews
-    .filter((r) => r.text && isKoreanReview(r.text, r.original_language))
+    .filter((r) => {
+      const text = r.originalText?.text ?? r.text?.text ?? "";
+      const lang = r.originalText?.languageCode ?? r.text?.languageCode;
+      return text && isKoreanReview(text, lang);
+    })
     .map((r, idx) => ({
-      reviewId: `${r.time}-${idx}`,
-      authorName: r.author_name,
+      reviewId: `${r.publishTime ?? idx}-${idx}`,
+      authorName: r.authorAttribution?.displayName ?? "익명",
       rating: r.rating,
-      text: r.text,
-      time: r.time,
-      relativeTimeDescription: r.relative_time_description,
+      text: r.originalText?.text ?? r.text?.text ?? "",
+      time: r.publishTime ? new Date(r.publishTime).getTime() / 1000 : 0,
+      relativeTimeDescription: r.relativePublishTimeDescription,
     }));
 }
 
-function toPlace(p: GooglePlace, koreanReviews: KoreanReview[]): Place {
+function toPlace(p: NewPlace, koreanReviews: KoreanReview[]): Place {
   return {
-    placeId: p.place_id,
-    name: p.name,
-    address: p.formatted_address,
+    placeId: p.id,
+    name: p.displayName?.text ?? "",
+    address: p.formattedAddress ?? "",
     rating: p.rating ?? 0,
-    totalRatings: p.user_ratings_total ?? 0,
+    totalRatings: p.userRatingCount ?? 0,
     koreanReviewCount: koreanReviews.length,
     badge: assignBadge(koreanReviews.length),
-    photoReference: p.photos?.[0]?.photo_reference,
-    types: p.types,
-    location: p.geometry.location,
+    photoReference: p.photos?.[0]?.name,
+    types: p.types ?? [],
+    location: {
+      lat: p.location?.latitude ?? 0,
+      lng: p.location?.longitude ?? 0,
+    },
   };
 }
 
-export async function searchPlaces(query: string): Promise<Place[]> {
-  const url = new URL(`${PLACES_BASE_URL}/textsearch/json`);
-  url.searchParams.set("query", query);
-  url.searchParams.set("language", "ko");
-  url.searchParams.set("key", getApiKey());
+const SEARCH_FIELDS = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.rating",
+  "places.userRatingCount",
+  "places.photos",
+  "places.types",
+  "places.location",
+  "places.reviews",
+].join(",");
 
-  const res = await fetch(url.toString(), {
+const DETAIL_FIELDS = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "rating",
+  "userRatingCount",
+  "photos",
+  "types",
+  "location",
+  "reviews",
+  "nationalPhoneNumber",
+  "websiteUri",
+  "regularOpeningHours",
+  "priceLevel",
+].join(",");
+
+export async function searchPlaces(query: string): Promise<Place[]> {
+  const res = await fetch(`${BASE}/places:searchText`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": getApiKey(),
+      "X-Goog-FieldMask": SEARCH_FIELDS,
+    },
+    body: JSON.stringify({ textQuery: query, languageCode: "ko" }),
     next: { revalidate: 86400 },
   });
-  if (!res.ok) throw new Error(`Places text search failed: ${res.status}`);
 
-  const json = await res.json();
-
-  if (json.status !== "OK" && json.status !== "ZERO_RESULTS") {
-    throw new Error(`Google Places API error: ${json.status} — ${json.error_message ?? ""}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      `Places search failed: ${res.status} — ${JSON.stringify(err)}`
+    );
   }
 
-  const results: GooglePlace[] = json.results ?? [];
+  const json = await res.json();
+  const places: NewPlace[] = json.places ?? [];
 
-  return results.slice(0, 20).map((p) => {
+  return places.slice(0, 20).map((p) => {
     const koreanReviews = extractKoreanReviews(p.reviews ?? []);
     return toPlace(p, koreanReviews);
   });
 }
 
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
-  const fields = [
-    "place_id",
-    "name",
-    "formatted_address",
-    "rating",
-    "user_ratings_total",
-    "photos",
-    "types",
-    "geometry",
-    "reviews",
-    "formatted_phone_number",
-    "website",
-    "opening_hours",
-    "price_level",
-  ].join(",");
-
-  const url = new URL(`${PLACES_BASE_URL}/details/json`);
-  url.searchParams.set("place_id", placeId);
-  url.searchParams.set("fields", fields);
-  url.searchParams.set("language", "ko");
-  url.searchParams.set("key", getApiKey());
-
-  const res = await fetch(url.toString(), {
+  const res = await fetch(`${BASE}/places/${placeId}`, {
+    headers: {
+      "X-Goog-Api-Key": getApiKey(),
+      "X-Goog-FieldMask": DETAIL_FIELDS,
+    },
     next: { revalidate: 86400 },
   });
-  if (!res.ok) throw new Error(`Place details failed: ${res.status}`);
 
-  const json = await res.json();
-  const p: GooglePlace = json.result;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      `Place details failed: ${res.status} — ${JSON.stringify(err)}`
+    );
+  }
 
+  const p: NewPlace = await res.json();
   const koreanReviews = extractKoreanReviews(p.reviews ?? []);
   const base = toPlace(p, koreanReviews);
 
@@ -125,9 +157,9 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
     ...base,
     koreanReviews,
     summary: null,
-    phoneNumber: p.formatted_phone_number,
-    website: p.website,
-    openingHours: p.opening_hours?.weekday_text,
-    priceLevel: p.price_level,
+    phoneNumber: p.nationalPhoneNumber,
+    website: p.websiteUri,
+    openingHours: p.regularOpeningHours?.weekdayDescriptions,
+    priceLevel: p.priceLevel ? PRICE_MAP[p.priceLevel] : undefined,
   };
 }
