@@ -16,7 +16,7 @@ export function getKoreanRatio(text: string): number {
   if (!text || text.length === 0) return 0;
   const letters = text.replace(/\s/g, "");
   if (letters.length === 0) return 0;
-  const koreanCount = [...letters].filter(isKoreanChar).length;
+  const koreanCount = Array.from(letters).filter(isKoreanChar).length;
   return koreanCount / letters.length;
 }
 
