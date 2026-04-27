@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReviewSummary from "@/components/ReviewSummary";
+import CopyButton from "@/components/CopyButton";
 import { getPlaceDetails } from "@/lib/google-places";
 import { summarizeKoreanReviews } from "@/lib/gemini";
 
@@ -18,6 +19,12 @@ function PriceLevel({ level }: { level: number }) {
       <span className="text-gray-400">({labels[level] ?? ""})</span>
     </span>
   );
+}
+
+function maskName(name: string): string {
+  if (!name || name.length === 0) return "익명";
+  const first = [...name][0]; // 유니코드 안전하게 첫 글자 추출
+  return first + "*".repeat(Math.min(name.length - 1, 3));
 }
 
 export default async function PlacePage({ params, searchParams }: PlacePageProps) {
@@ -52,7 +59,10 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900">{place.name}</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 truncate">{place.name}</h1>
+            <CopyButton text={place.name} />
+          </div>
           <div className="flex items-center gap-1 text-sm shrink-0">
             <span className="text-yellow-400">★</span>
             <span className="font-semibold">{place.rating.toFixed(1)}</span>
@@ -120,8 +130,8 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-800">
-                    {review.authorName}
+                  <span className="text-sm font-medium text-gray-600">
+                    {maskName(review.authorName)}
                   </span>
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <span className="text-yellow-400">★</span>
