@@ -54,11 +54,14 @@ async function SearchResults({ query }: { query: string }) {
         )}
       </div>
     );
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("SearchResults error:", message);
     return (
-      <p className="text-center text-gray-500 py-12">
-        검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
-      </p>
+      <div className="text-center py-12 space-y-2">
+        <p className="text-gray-500">검색 중 오류가 발생했습니다.</p>
+        <p className="text-xs text-red-400">{message}</p>
+      </div>
     );
   }
 }
