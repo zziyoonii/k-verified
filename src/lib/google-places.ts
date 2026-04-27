@@ -134,7 +134,10 @@ export async function searchPlaces(query: string): Promise<Place[]> {
 }
 
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
-  const res = await fetch(`${BASE}/places/${placeId}`, {
+  const url = new URL(`${BASE}/places/${placeId}`);
+  url.searchParams.set("languageCode", "ko");
+
+  const res = await fetch(url.toString(), {
     headers: {
       "X-Goog-Api-Key": getApiKey(),
       "X-Goog-FieldMask": DETAIL_FIELDS,
@@ -150,6 +153,12 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   }
 
   const p: NewPlace = await res.json();
+
+  console.log(
+    `[place:${placeId}] reviews: ${p.reviews?.length ?? 0}`,
+    p.reviews?.map((r) => r.originalText?.languageCode ?? r.text?.languageCode) ?? []
+  );
+
   const koreanReviews = extractKoreanReviews(p.reviews ?? []);
   const base = toPlace(p, koreanReviews);
 
