@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     description: "한국인이 검증한 해외 맛집·마사지·카페",
     type: "website",
   },
+  other: {
+    "google-adsense-account": "ca-pub-8044778231088788",
+  },
 };
 
 export default function RootLayout({
