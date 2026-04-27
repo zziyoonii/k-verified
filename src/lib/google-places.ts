@@ -74,6 +74,11 @@ export async function searchPlaces(query: string): Promise<Place[]> {
   if (!res.ok) throw new Error(`Places text search failed: ${res.status}`);
 
   const json = await res.json();
+
+  if (json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    throw new Error(`Google Places API error: ${json.status} — ${json.error_message ?? ""}`);
+  }
+
   const results: GooglePlace[] = json.results ?? [];
 
   return results.slice(0, 20).map((p) => {
