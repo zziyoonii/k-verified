@@ -12,22 +12,18 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 let genAI: GoogleGenerativeAI | null = null;
 
 function getGenAI(): GoogleGenerativeAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
-    genAI = new GoogleGenerativeAI(apiKey);
-  }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
+  if (!genAI) genAI = new GoogleGenerativeAI(apiKey);
   return genAI;
 }
 
 export async function summarizeKoreanReviews(
   reviews: string[]
-): Promise<string> {
-  if (reviews.length === 0) return "";
+): Promise<string | null> {
+  if (reviews.length === 0) return null;
 
-  const reviewText = reviews
-    .map((r, i) => `리뷰 ${i + 1}: ${r}`)
-    .join("\n\n");
+  const reviewText = reviews.map((r, i) => `리뷰 ${i + 1}: ${r}`).join("\n\n");
 
   try {
     const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -37,6 +33,6 @@ export async function summarizeKoreanReviews(
     return result.response.text();
   } catch (error) {
     console.error("Gemini API error:", error);
-    return "리뷰 요약을 생성할 수 없습니다.";
+    return null;
   }
 }

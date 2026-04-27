@@ -5,7 +5,8 @@ import Badge from "./Badge";
 
 interface PlaceCardProps {
   place: Place;
-  query?: string;
+  dest?: string;
+  cat?: string;
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -17,10 +18,12 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export default function PlaceCard({ place, query }: PlaceCardProps) {
-  const href = query
-    ? `/place/${place.placeId}?q=${encodeURIComponent(query)}`
-    : `/place/${place.placeId}`;
+export default function PlaceCard({ place, dest, cat }: PlaceCardProps) {
+  const params = new URLSearchParams();
+  if (dest) params.set("dest", dest);
+  if (cat) params.set("cat", cat);
+  const qs = params.toString();
+  const href = `/place/${place.placeId}${qs ? `?${qs}` : ""}`;
 
   return (
     <Link
@@ -30,7 +33,7 @@ export default function PlaceCard({ place, query }: PlaceCardProps) {
       <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
         {place.photoReference ? (
           <Image
-            src={`/api/photo?ref=${place.photoReference}&w=200`}
+            src={`/api/photo?ref=${encodeURIComponent(place.photoReference)}&w=200`}
             alt={place.name}
             width={96}
             height={96}
