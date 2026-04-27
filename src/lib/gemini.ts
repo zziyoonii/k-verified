@@ -9,30 +9,28 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 반드시 한국어로 작성하고, 각 줄은 간결하게 1~2문장으로 작성해주세요.`;
 
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
-  if (!genAI) genAI = new GoogleGenerativeAI(apiKey);
-  return genAI;
-}
-
 export async function summarizeKoreanReviews(
   reviews: string[]
 ): Promise<string | null> {
   if (reviews.length === 0) return null;
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("[Gemini] GEMINI_API_KEY가 설정되지 않았습니다. Vercel → Settings → Environment Variables에서 추가하세요.");
+    return null;
+  }
+
   const reviewText = reviews.map((r, i) => `리뷰 ${i + 1}: ${r}`).join("\n\n");
 
   try {
-    const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(
       `${SUMMARY_PROMPT}\n\n---\n${reviewText}`
     );
     return result.response.text();
   } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("[Gemini] API 호출 실패:", error instanceof Error ? error.message : error);
     return null;
   }
 }

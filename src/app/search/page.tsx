@@ -1,9 +1,12 @@
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import SearchBar from "@/components/SearchBar";
 import PlaceCard from "@/components/PlaceCard";
 import { searchPlaces } from "@/lib/google-places";
 import { geocodeLocation } from "@/lib/geocoding";
 import { Place } from "@/types";
+
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 interface SearchPageProps {
   searchParams: { dest?: string; cat?: string };
@@ -14,7 +17,8 @@ const BADGE_ORDER = { 강력추천: 0, 검증: 1, 발견: 2 } as const;
 async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
   try {
     const locationBias = await geocodeLocation(dest);
-    const query = cat ? cat : dest;
+    // 카테고리 없으면 "맛집"으로 기본 검색
+    const query = cat.trim() || "맛집";
     const places = await searchPlaces(query, locationBias ?? undefined);
 
     if (places.length === 0) {
@@ -36,6 +40,15 @@ async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
 
     return (
       <div className="space-y-6">
+        {/* 지도 */}
+        {locationBias && (
+          <MapView
+            places={places}
+            center={locationBias}
+          />
+        )}
+
+        {/* 한국인 리뷰 있는 곳 */}
         {withKorean.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-brand-600 mb-3">
@@ -49,6 +62,7 @@ async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
           </section>
         )}
 
+        {/* 기타 결과 */}
         {withoutKorean.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-gray-400 mb-3">
@@ -98,7 +112,8 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
           <Suspense
             fallback={
               <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
+                <div className="h-[420px] bg-gray-100 rounded-2xl animate-pulse" />
+                {[...Array(4)].map((_, i) => (
                   <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
                 ))}
               </div>
