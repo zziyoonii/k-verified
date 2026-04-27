@@ -105,7 +105,21 @@ const DETAIL_FIELDS = [
   "priceLevel",
 ].join(",");
 
-export async function searchPlaces(query: string): Promise<Place[]> {
+export async function searchPlaces(
+  query: string,
+  locationBias?: { lat: number; lng: number }
+): Promise<Place[]> {
+  const body: Record<string, unknown> = { textQuery: query, languageCode: "ko" };
+
+  if (locationBias) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: locationBias.lat, longitude: locationBias.lng },
+        radius: 50000,
+      },
+    };
+  }
+
   const res = await fetch(`${BASE}/places:searchText`, {
     method: "POST",
     headers: {
@@ -113,7 +127,7 @@ export async function searchPlaces(query: string): Promise<Place[]> {
       "X-Goog-Api-Key": getApiKey(),
       "X-Goog-FieldMask": SEARCH_FIELDS,
     },
-    body: JSON.stringify({ textQuery: query, languageCode: "ko" }),
+    body: JSON.stringify(body),
     next: { revalidate: 86400 },
   });
 

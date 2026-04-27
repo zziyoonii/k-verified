@@ -1,14 +1,20 @@
 import SearchBar from "@/components/SearchBar";
 
+const POPULAR_CITIES = [
+  { name: "방콕", emoji: "🇹🇭", country: "태국" },
+  { name: "발리", emoji: "🇮🇩", country: "인도네시아" },
+  { name: "도쿄", emoji: "🇯🇵", country: "일본" },
+  { name: "오사카", emoji: "🇯🇵", country: "일본" },
+  { name: "파리", emoji: "🇫🇷", country: "프랑스" },
+];
+
 const POPULAR_SEARCHES = [
-  "방콕 마사지",
-  "도쿄 라멘",
-  "오사카 이자카야",
-  "파리 카페",
-  "뉴욕 한식당",
-  "발리 스파",
-  "싱가포르 호커센터",
-  "베트남 쌀국수",
+  { dest: "방콕", cat: "마사지" },
+  { dest: "발리", cat: "스파" },
+  { dest: "도쿄", cat: "라멘" },
+  { dest: "오사카", cat: "이자카야" },
+  { dest: "파리", cat: "카페" },
+  { dest: "싱가포르", cat: "호커센터" },
 ];
 
 export default function HomePage() {
@@ -33,21 +39,38 @@ export default function HomePage() {
       </div>
 
       <div className="w-full max-w-xl">
-        <p className="text-xs text-gray-400 mb-3 text-center">인기 검색어</p>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {POPULAR_SEARCHES.map((term) => (
+        <p className="text-xs text-gray-400 mb-3 font-medium">인기 도시</p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          {POPULAR_CITIES.map((city) => (
             <a
-              key={term}
-              href={`/search?q=${encodeURIComponent(term)}`}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors shadow-sm"
+              key={city.name}
+              href={`/search?dest=${encodeURIComponent(city.name)}`}
+              className="flex flex-col items-center gap-1 px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:border-brand-400 hover:shadow-sm transition-all shadow-sm min-w-[72px]"
             >
-              {term}
+              <span className="text-2xl">{city.emoji}</span>
+              <span className="text-sm font-semibold text-gray-700">{city.name}</span>
+              <span className="text-xs text-gray-400">{city.country}</span>
             </a>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 w-full max-w-xl mt-4">
+      <div className="w-full max-w-xl">
+        <p className="text-xs text-gray-400 mb-3 font-medium">인기 검색</p>
+        <div className="flex flex-wrap gap-2 justify-center">
+          {POPULAR_SEARCHES.map((s) => (
+            <a
+              key={`${s.dest}-${s.cat}`}
+              href={`/search?dest=${encodeURIComponent(s.dest)}&cat=${encodeURIComponent(s.cat)}`}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors shadow-sm"
+            >
+              {s.dest} {s.cat}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 w-full max-w-xl mt-2">
         {[
           { emoji: "🔍", label: "발견", desc: "한국인 리뷰 1~2개" },
           { emoji: "✅", label: "검증", desc: "한국인 리뷰 3~5개" },
@@ -58,9 +81,7 @@ export default function HomePage() {
             className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm"
           >
             <div className="text-2xl mb-1">{badge.emoji}</div>
-            <div className="text-sm font-semibold text-gray-800">
-              {badge.label}
-            </div>
+            <div className="text-sm font-semibold text-gray-800">{badge.label}</div>
             <div className="text-xs text-gray-400 mt-0.5">{badge.desc}</div>
           </div>
         ))}

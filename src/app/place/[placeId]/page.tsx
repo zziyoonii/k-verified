@@ -7,7 +7,7 @@ import { summarizeKoreanReviews } from "@/lib/gemini";
 
 interface PlacePageProps {
   params: { placeId: string };
-  searchParams: { q?: string };
+  searchParams: { dest?: string; cat?: string };
 }
 
 function PriceLevel({ level }: { level: number }) {
@@ -36,9 +36,10 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
     );
   }
 
-  const backHref = searchParams.q
-    ? `/search?q=${encodeURIComponent(searchParams.q)}`
-    : "/";
+  const backParams = new URLSearchParams();
+  if (searchParams.dest) backParams.set("dest", searchParams.dest);
+  if (searchParams.cat) backParams.set("cat", searchParams.cat);
+  const backHref = backParams.toString() ? `/search?${backParams.toString()}` : "/";
 
   return (
     <div className="space-y-5">

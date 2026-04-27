@@ -4,46 +4,70 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 interface SearchBarProps {
-  defaultValue?: string;
+  defaultDest?: string;
+  defaultCat?: string;
   size?: "lg" | "md";
 }
 
 export default function SearchBar({
-  defaultValue = "",
+  defaultDest = "",
+  defaultCat = "",
   size = "lg",
 }: SearchBarProps) {
-  const [query, setQuery] = useState(defaultValue);
+  const [dest, setDest] = useState(defaultDest);
+  const [cat, setCat] = useState(defaultCat);
   const router = useRouter();
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    if (!dest.trim()) return;
+    const params = new URLSearchParams({ dest: dest.trim() });
+    if (cat.trim()) params.set("cat", cat.trim());
+    router.push(`/search?${params.toString()}`);
   }
 
-  const inputClass =
-    size === "lg"
-      ? "w-full text-base px-5 py-4 rounded-2xl border border-gray-200 shadow focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-      : "w-full text-sm px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent";
-
-  const btnClass =
-    size === "lg"
-      ? "absolute right-2 top-1/2 -translate-y-1/2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors"
-      : "absolute right-2 top-1/2 -translate-y-1/2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors";
+  const isLg = size === "lg";
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="예: 방콕 마사지, 도쿄 라멘, 파리 카페"
-        className={inputClass}
-      />
-      <button type="submit" className={btnClass}>
-        검색
-      </button>
+    <form onSubmit={handleSubmit} className="w-full flex flex-col gap-2">
+      <div className="flex gap-2">
+        <div className={`relative flex-1 ${isLg ? "" : ""}`}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm select-none">
+            📍
+          </span>
+          <input
+            type="text"
+            value={dest}
+            onChange={(e) => setDest(e.target.value)}
+            placeholder="여행지 (예: 발리, 방콕)"
+            className={`w-full pl-8 pr-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+              isLg ? "py-3.5 text-base" : "py-2.5 text-sm"
+            }`}
+          />
+        </div>
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm select-none">
+            🔎
+          </span>
+          <input
+            type="text"
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+            placeholder="업종 (예: 스파, 라멘)"
+            className={`w-full pl-8 pr-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+              isLg ? "py-3.5 text-base" : "py-2.5 text-sm"
+            }`}
+          />
+        </div>
+        <button
+          type="submit"
+          className={`shrink-0 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold transition-colors ${
+            isLg ? "px-5 py-3.5 text-base" : "px-4 py-2.5 text-sm"
+          }`}
+        >
+          검색
+        </button>
+      </div>
     </form>
   );
 }

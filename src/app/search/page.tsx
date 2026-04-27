@@ -2,14 +2,20 @@ import { Suspense } from "react";
 import SearchBar from "@/components/SearchBar";
 import PlaceCard from "@/components/PlaceCard";
 import { searchPlaces } from "@/lib/google-places";
+import { geocodeLocation } from "@/lib/geocoding";
+import { Place } from "@/types";
 
 interface SearchPageProps {
-  searchParams: { q?: string };
+  searchParams: { dest?: string; cat?: string };
 }
 
-async function SearchResults({ query }: { query: string }) {
+const BADGE_ORDER = { 강력추천: 0, 검증: 1, 발견: 2 } as const;
+
+async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
   try {
-    const places = await searchPlaces(query);
+    const locationBias = await geocodeLocation(dest);
+    const query = cat ? cat : dest;
+    const places = await searchPlaces(query, locationBias ?? undefined);
 
     if (places.length === 0) {
       return (
@@ -22,7 +28,10 @@ async function SearchResults({ query }: { query: string }) {
       );
     }
 
-    const withKorean = places.filter((p) => p.badge !== null);
+    const withKorean = places
+      .filter((p): p is Place & { badge: NonNullable<Place["badge"]> } => p.badge !== null)
+      .sort((a, b) => BADGE_ORDER[a.badge] - BADGE_ORDER[b.badge]);
+
     const withoutKorean = places.filter((p) => p.badge === null);
 
     return (
@@ -34,7 +43,7 @@ async function SearchResults({ query }: { query: string }) {
             </h2>
             <div className="space-y-3">
               {withKorean.map((place) => (
-                <PlaceCard key={place.placeId} place={place} query={query} />
+                <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
               ))}
             </div>
           </section>
@@ -47,7 +56,7 @@ async function SearchResults({ query }: { query: string }) {
             </h2>
             <div className="space-y-3">
               {withoutKorean.map((place) => (
-                <PlaceCard key={place.placeId} place={place} query={query} />
+                <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
               ))}
             </div>
           </section>
@@ -67,36 +76,40 @@ async function SearchResults({ query }: { query: string }) {
 }
 
 export default function SearchPage({ searchParams }: SearchPageProps) {
-  const query = searchParams.q ?? "";
+  const dest = searchParams.dest ?? "";
+  const cat = searchParams.cat ?? "";
 
   return (
     <div className="space-y-5">
-      <SearchBar defaultValue={query} size="md" />
+      <SearchBar defaultDest={dest} defaultCat={cat} size="md" />
 
-      {query ? (
+      {dest ? (
         <>
           <p className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-800">{query}</span> 검색
-            결과
+            <span className="font-semibold text-gray-800">{dest}</span>
+            {cat && (
+              <>
+                {" "}·{" "}
+                <span className="font-semibold text-gray-800">{cat}</span>
+              </>
+            )}{" "}
+            검색 결과
           </p>
           <Suspense
             fallback={
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-28 bg-gray-100 rounded-2xl animate-pulse"
-                  />
+                  <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
                 ))}
               </div>
             }
           >
-            <SearchResults query={query} />
+            <SearchResults dest={dest} cat={cat} />
           </Suspense>
         </>
       ) : (
         <p className="text-center text-gray-400 py-12">
-          검색어를 입력해주세요.
+          여행지를 입력해주세요.
         </p>
       )}
     </div>
