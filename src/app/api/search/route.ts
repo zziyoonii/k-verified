@@ -3,6 +3,7 @@ import { searchPlaces } from "@/lib/google-places";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q");
+  const pageToken = request.nextUrl.searchParams.get("pageToken") ?? undefined;
 
   if (!query || query.trim().length === 0) {
     return NextResponse.json(
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const places = await searchPlaces(query.trim());
-    return NextResponse.json({ places, query, totalCount: places.length });
+    const { places, nextPageToken } = await searchPlaces(query.trim(), undefined, pageToken);
+    return NextResponse.json({ places, query, totalCount: places.length, nextPageToken });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json(

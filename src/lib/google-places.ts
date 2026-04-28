@@ -78,6 +78,7 @@ function toPlace(p: NewPlace, koreanReviews: KoreanReview[]): Place {
 }
 
 const SEARCH_FIELDS = [
+  "nextPageToken",
   "places.id",
   "places.displayName",
   "places.formattedAddress",
@@ -107,8 +108,9 @@ const DETAIL_FIELDS = [
 
 export async function searchPlaces(
   query: string,
-  locationBias?: { lat: number; lng: number }
-): Promise<Place[]> {
+  locationBias?: { lat: number; lng: number },
+  pageToken?: string
+): Promise<{ places: Place[]; nextPageToken?: string }> {
   const body: Record<string, unknown> = { textQuery: query, languageCode: "ko" };
 
   if (locationBias) {
@@ -118,6 +120,10 @@ export async function searchPlaces(
         radius: 50000,
       },
     };
+  }
+
+  if (pageToken) {
+    body.pageToken = pageToken;
   }
 
   const res = await fetch(`${BASE}/places:searchText`, {
@@ -139,12 +145,14 @@ export async function searchPlaces(
   }
 
   const json = await res.json();
-  const places: NewPlace[] = json.places ?? [];
+  const rawPlaces: NewPlace[] = json.places ?? [];
 
-  return places.slice(0, 20).map((p) => {
+  const places = rawPlaces.map((p) => {
     const koreanReviews = extractKoreanReviews(p.reviews ?? []);
     return toPlace(p, koreanReviews);
   });
+
+  return { places, nextPageToken: json.nextPageToken };
 }
 
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {

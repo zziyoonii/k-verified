@@ -1,10 +1,9 @@
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import SearchBar from "@/components/SearchBar";
-import PlaceCard from "@/components/PlaceCard";
+import LoadMoreResults from "@/components/LoadMoreResults";
 import { searchPlaces } from "@/lib/google-places";
 import { geocodeLocation } from "@/lib/geocoding";
-import { Place } from "@/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -12,14 +11,11 @@ interface SearchPageProps {
   searchParams: { dest?: string; cat?: string };
 }
 
-const BADGE_ORDER = { 강력추천: 0, 검증: 1, 발견: 2 } as const;
-
 async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
   try {
     const locationBias = await geocodeLocation(dest);
-    // 카테고리 없으면 "맛집"으로 기본 검색
     const query = cat.trim() || "맛집";
-    const places = await searchPlaces(query, locationBias ?? undefined);
+    const { places, nextPageToken } = await searchPlaces(query, locationBias ?? undefined);
 
     if (places.length === 0) {
       return (
@@ -32,49 +28,23 @@ async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
       );
     }
 
-    const withKorean = places
-      .filter((p): p is Place & { badge: NonNullable<Place["badge"]> } => p.badge !== null)
-      .sort((a, b) => BADGE_ORDER[a.badge] - BADGE_ORDER[b.badge]);
-
-    const withoutKorean = places.filter((p) => p.badge === null);
+    // 한국인 리뷰 많은 순 → 별점 높은 순
+    const sorted = [...places].sort(
+      (a, b) => b.koreanReviewCount - a.koreanReviewCount || b.rating - a.rating
+    );
 
     return (
       <div className="space-y-6">
-        {/* 지도 */}
         {locationBias && (
-          <MapView
-            places={places}
-            center={locationBias}
-          />
+          <MapView places={sorted} center={locationBias} />
         )}
-
-        {/* 한국인 리뷰 있는 곳 */}
-        {withKorean.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-brand-600 mb-3">
-              🇰🇷 한국인 리뷰 있는 곳 ({withKorean.length})
-            </h2>
-            <div className="space-y-3">
-              {withKorean.map((place) => (
-                <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 기타 결과 */}
-        {withoutKorean.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-gray-400 mb-3">
-              기타 검색 결과 ({withoutKorean.length})
-            </h2>
-            <div className="space-y-3">
-              {withoutKorean.map((place) => (
-                <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
-              ))}
-            </div>
-          </section>
-        )}
+        <LoadMoreResults
+          initialPlaces={sorted}
+          initialNextPageToken={nextPageToken}
+          dest={dest}
+          cat={cat}
+          query={query}
+        />
       </div>
     );
   } catch (error) {
