@@ -23,7 +23,7 @@ function PriceLevel({ level }: { level: number }) {
 
 function maskName(name: string): string {
   if (!name || name.length === 0) return "익명";
-  const first = Array.from(name)[0]; // 유니코드 안전하게 첫 글자 추출
+  const first = Array.from(name)[0];
   return first + "*".repeat(Math.min(name.length - 1, 3));
 }
 
