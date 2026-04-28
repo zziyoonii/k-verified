@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { unstable_cache } from "next/cache";
 
 const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지/카페 리뷰 요약 전문가입니다.
 아래 한국인 리뷰들을 읽고 다음 형식으로 3줄 요약을 작성해주세요:
@@ -51,12 +50,5 @@ export async function summarizeKoreanReviews(
   reviews: string[]
 ): Promise<string | null> {
   if (reviews.length === 0) return null;
-
-  const key = reviews.map((r) => r.slice(0, 100)).join("|");
-  const cached = unstable_cache(
-    async () => callGemini(reviews),
-    ["review-summary", key],
-    { revalidate: 86400 }
-  );
-  return cached();
+  return callGemini(reviews);
 }
