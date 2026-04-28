@@ -11,10 +11,10 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 // 우선순위 순으로 시도할 모델 목록
 const MODELS = [
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-001",
   "gemini-1.5-flash-latest",
-  "gemini-pro",
+  "gemini-1.5-flash-8b-latest",
+  "gemini-2.0-flash-lite",
+  "gemini-2.0-flash",
 ];
 
 export async function summarizeKoreanReviews(
@@ -43,7 +43,7 @@ export async function summarizeKoreanReviews(
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Gemini] 모델 ${modelName} 실패:`, msg);
       // 404(모델 없음)면 다음 모델 시도, 그 외 에러면 중단
-      if (!msg.includes("404")) break;
+      if (!msg.includes("404") && !msg.includes("429")) break;
     }
   }
 
