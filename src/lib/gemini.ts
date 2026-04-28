@@ -12,8 +12,8 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 // 우선순위 순으로 시도할 모델 목록 (무료 티어 우선)
 const MODELS = [
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-flash-8b-latest",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
   "gemini-2.0-flash-lite",
   "gemini-2.0-flash",
 ];
