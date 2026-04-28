@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { unstable_cache } from "next/cache";
 
 const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지/카페 리뷰 요약 전문가입니다.
@@ -10,29 +10,41 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 반드시 한국어로 작성하고, 각 줄은 간결하게 1~2문장으로 작성해주세요.`;
 
-async function callClaude(reviews: string[]): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+// 우선순위 순으로 시도할 모델 목록 (무료 티어 우선)
+const MODELS = [
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash-8b-latest",
+  "gemini-2.0-flash-lite",
+  "gemini-2.0-flash",
+];
+
+async function callGemini(reviews: string[]): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.error("[Claude] ANTHROPIC_API_KEY가 설정되지 않았습니다.");
+    console.error("[Gemini] GEMINI_API_KEY가 설정되지 않았습니다.");
     return null;
   }
 
   const reviewText = reviews.map((r, i) => `리뷰 ${i + 1}: ${r}`).join("\n\n");
-  const client = new Anthropic({ apiKey });
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-  try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      messages: [{ role: "user", content: `${SUMMARY_PROMPT}\n\n---\n${reviewText}` }],
-    });
-    console.log("[Claude] AI 요약 성공");
-    const block = message.content[0];
-    return block.type === "text" ? block.text : null;
-  } catch (error) {
-    console.error("[Claude] API 호출 실패:", error instanceof Error ? error.message : error);
-    return null;
+  for (const modelName of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(
+        `${SUMMARY_PROMPT}\n\n---\n${reviewText}`
+      );
+      console.log(`[Gemini] 성공 (모델: ${modelName})`);
+      return result.response.text();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[Gemini] 모델 ${modelName} 실패:`, msg);
+      // 404(모델 없음) 또는 429(할당량 초과)면 다음 모델 시도
+      if (!msg.includes("404") && !msg.includes("429")) break;
+    }
   }
+
+  return null;
 }
 
 export async function summarizeKoreanReviews(
@@ -42,7 +54,7 @@ export async function summarizeKoreanReviews(
 
   const key = reviews.map((r) => r.slice(0, 100)).join("|");
   const cached = unstable_cache(
-    async () => callClaude(reviews),
+    async () => callGemini(reviews),
     ["review-summary", key],
     { revalidate: 86400 }
   );
