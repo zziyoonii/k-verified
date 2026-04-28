@@ -151,27 +151,28 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   const url = new URL(`${BASE}/places/${placeId}`);
   url.searchParams.set("languageCode", "ko");
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      "X-Goog-Api-Key": getApiKey(),
-      "X-Goog-FieldMask": DETAIL_FIELDS,
-    },
-    next: { revalidate: 86400 },
-  });
+  const zhUrl = new URL(`${BASE}/places/${placeId}`);
+  zhUrl.searchParams.set("languageCode", "zh");
+
+  const [res, zhRes] = await Promise.all([
+    fetch(url.toString(), {
+      headers: { "X-Goog-Api-Key": getApiKey(), "X-Goog-FieldMask": DETAIL_FIELDS },
+      next: { revalidate: 86400 },
+    }),
+    fetch(zhUrl.toString(), {
+      headers: { "X-Goog-Api-Key": getApiKey(), "X-Goog-FieldMask": "displayName" },
+      next: { revalidate: 86400 },
+    }),
+  ]);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(
-      `Place details failed: ${res.status} — ${JSON.stringify(err)}`
-    );
+    throw new Error(`Place details failed: ${res.status} — ${JSON.stringify(err)}`);
   }
 
   const p: NewPlace = await res.json();
-
-  console.log(
-    `[place:${placeId}] reviews: ${p.reviews?.length ?? 0}`,
-    p.reviews?.map((r) => r.originalText?.languageCode ?? r.text?.languageCode) ?? []
-  );
+  const zhData = zhRes.ok ? await zhRes.json().catch(() => null) : null;
+  const localName: string | undefined = zhData?.displayName?.text ?? undefined;
 
   const koreanReviews = extractKoreanReviews(p.reviews ?? []);
   const base = toPlace(p, koreanReviews);
@@ -180,6 +181,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
     ...base,
     koreanReviews,
     summary: null,
+    localName,
     phoneNumber: p.nationalPhoneNumber,
     website: p.websiteUri,
     openingHours: p.regularOpeningHours?.weekdayDescriptions,

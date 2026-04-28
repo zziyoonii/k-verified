@@ -61,7 +61,7 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <h1 className="text-xl font-bold text-gray-900 truncate">{place.name}</h1>
-            <CopyButton text={place.name} />
+            <CopyButton name={place.name} localName={place.localName} />
           </div>
           <div className="flex items-center gap-1 text-sm shrink-0">
             <span className="text-yellow-400">★</span>

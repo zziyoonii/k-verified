@@ -9,6 +9,14 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 반드시 한국어로 작성하고, 각 줄은 간결하게 1~2문장으로 작성해주세요.`;
 
+// 우선순위 순으로 시도할 모델 목록
+const MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-001",
+  "gemini-1.5-flash-latest",
+  "gemini-pro",
+];
+
 export async function summarizeKoreanReviews(
   reviews: string[]
 ): Promise<string | null> {
@@ -16,21 +24,28 @@ export async function summarizeKoreanReviews(
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.error("[Gemini] GEMINI_API_KEY가 설정되지 않았습니다. Vercel → Settings → Environment Variables에서 추가하세요.");
+    console.error("[Gemini] GEMINI_API_KEY가 설정되지 않았습니다.");
     return null;
   }
 
   const reviewText = reviews.map((r, i) => `리뷰 ${i + 1}: ${r}`).join("\n\n");
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(
-      `${SUMMARY_PROMPT}\n\n---\n${reviewText}`
-    );
-    return result.response.text();
-  } catch (error) {
-    console.error("[Gemini] API 호출 실패:", error instanceof Error ? error.message : error);
-    return null;
+  for (const modelName of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(
+        `${SUMMARY_PROMPT}\n\n---\n${reviewText}`
+      );
+      console.log(`[Gemini] 성공 (모델: ${modelName})`);
+      return result.response.text();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[Gemini] 모델 ${modelName} 실패:`, msg);
+      // 404(모델 없음)면 다음 모델 시도, 그 외 에러면 중단
+      if (!msg.includes("404")) break;
+    }
   }
+
+  return null;
 }

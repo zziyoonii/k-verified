@@ -2,11 +2,19 @@
 
 import { useState } from "react";
 
-export default function CopyButton({ text }: { text: string }) {
+interface CopyButtonProps {
+  name: string;
+  localName?: string;
+}
+
+export default function CopyButton({ name, localName }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
+  const copyText = localName && localName !== name ? localName : name;
+  const hasLocal = localName && localName !== name;
+
   async function handleCopy() {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(copyText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -15,7 +23,7 @@ export default function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       className="shrink-0 flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors px-2 py-1 rounded-lg hover:bg-brand-50"
-      title="장소명 복사 (바이두지도 검색용)"
+      title={hasLocal ? `현지명 복사: ${copyText}` : "장소명 복사"}
     >
       {copied ? (
         <>
@@ -25,7 +33,7 @@ export default function CopyButton({ text }: { text: string }) {
       ) : (
         <>
           <span>📋</span>
-          <span>복사</span>
+          <span>{hasLocal ? "현지명 복사" : "복사"}</span>
         </>
       )}
     </button>
