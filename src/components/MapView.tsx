@@ -16,7 +16,7 @@ const BADGE_COLOR: Record<string, string> = {
 
 export default function MapView({ places, center }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<ReturnType<typeof import("leaflet")["default"]["map"]> | null>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
