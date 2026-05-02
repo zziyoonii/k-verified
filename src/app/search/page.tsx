@@ -44,6 +44,7 @@ async function SearchResults({ dest, cat }: { dest: string; cat: string }) {
           dest={dest}
           cat={cat}
           query={query}
+          totalCount={places.length}
         />
       </div>
     );

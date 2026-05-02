@@ -10,6 +10,7 @@ interface Props {
   dest: string;
   cat: string;
   query: string;
+  totalCount: number;
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -44,8 +45,7 @@ function InfoTooltip() {
       {open && (
         <div className="absolute left-0 top-5 z-10 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs text-gray-600 space-y-1.5">
           <p className="font-semibold text-gray-800 mb-1">한국인 리뷰 기준</p>
-          <p>구글은 장소당 최대 <strong>5개</strong> 리뷰만 제공하기 때문에 한국인 리뷰도 최대 5개입니다.</p>
-          <p>리뷰는 <strong>24시간마다</strong> 구글에서 최신화됩니다.</p>
+          <p>구글은 장소당 최대 <strong>5개</strong> 리뷰만 제공합니다. 리뷰는 <strong>24시간마다</strong> 최신화됩니다.</p>
           <div className="pt-1 border-t border-gray-100 space-y-0.5">
             <p>🔥 <strong>강력추천</strong> — 한국인 리뷰 6개 이상</p>
             <p>✅ <strong>검증</strong> — 3개 이상</p>
@@ -64,10 +64,12 @@ export default function LoadMoreResults({
   dest,
   cat,
   query,
+  totalCount,
 }: Props) {
   const [places, setPlaces] = useState<Place[]>(initialPlaces);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(initialNextPageToken);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("전체");
 
   const showCategories = !cat.trim();
@@ -75,14 +77,22 @@ export default function LoadMoreResults({
   async function loadMore() {
     if (!nextPageToken || loading) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams({ q: query, pageToken: nextPageToken });
       const res = await fetch(`/api/search?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.places) {
+      if (data.error) throw new Error(data.error);
+      if (data.places?.length) {
         setPlaces((prev) => [...prev, ...data.places]);
         setNextPageToken(data.nextPageToken);
+      } else {
+        setNextPageToken(undefined);
       }
+    } catch (e) {
+      setLoadError("추가 결과를 불러오지 못했습니다.");
+      console.error("[LoadMore]", e);
     } finally {
       setLoading(false);
     }
@@ -91,7 +101,6 @@ export default function LoadMoreResults({
   const withKorean = places.filter((p) => p.badge !== null);
   const withoutKorean = places.filter((p) => p.badge === null);
 
-  // 실제 결과에 존재하는 카테고리만 탭으로 표시
   const availableTabs = useMemo(() => {
     if (!showCategories) return [];
     const seen = new Set<string>();
@@ -110,12 +119,14 @@ export default function LoadMoreResults({
     <div className="space-y-4">
       {withKorean.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-brand-600 mb-3">
-            🇰🇷 한국인 리뷰 있는 곳 ({withKorean.length})
+          <h2 className="text-sm font-semibold text-brand-600 mb-1">
+            🇰🇷 한국인 리뷰 있는 곳
             <InfoTooltip />
           </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            검색된 {totalCount}곳 중 {withKorean.length}곳에 한국인 리뷰 있음
+          </p>
 
-          {/* 카테고리 탭 — 도시만 검색한 경우 */}
           {showCategories && availableTabs.length > 2 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
               {availableTabs.map((tab) => (
@@ -164,7 +175,7 @@ export default function LoadMoreResults({
       )}
 
       {nextPageToken && (
-        <div className="text-center pt-2">
+        <div className="text-center pt-2 space-y-2">
           <button
             onClick={loadMore}
             disabled={loading}
@@ -172,6 +183,7 @@ export default function LoadMoreResults({
           >
             {loading ? "불러오는 중..." : "더 보기"}
           </button>
+          {loadError && <p className="text-xs text-red-400">{loadError}</p>}
         </div>
       )}
     </div>

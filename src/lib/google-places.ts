@@ -111,19 +111,20 @@ export async function searchPlaces(
   locationBias?: { lat: number; lng: number },
   pageToken?: string
 ): Promise<{ places: Place[]; nextPageToken?: string }> {
-  const body: Record<string, unknown> = { textQuery: query, languageCode: "ko" };
-
-  if (locationBias) {
-    body.locationBias = {
-      circle: {
-        center: { latitude: locationBias.lat, longitude: locationBias.lng },
-        radius: 50000,
-      },
-    };
-  }
-
+  // pageToken 사용 시 textQuery/locationBias는 토큰에 인코딩되어 있으므로 제외
+  const body: Record<string, unknown> = { languageCode: "ko" };
   if (pageToken) {
     body.pageToken = pageToken;
+  } else {
+    body.textQuery = query;
+    if (locationBias) {
+      body.locationBias = {
+        circle: {
+          center: { latitude: locationBias.lat, longitude: locationBias.lng },
+          radius: 50000,
+        },
+      };
+    }
   }
 
   const res = await fetch(`${BASE}/places:searchText`, {
@@ -134,7 +135,7 @@ export async function searchPlaces(
       "X-Goog-FieldMask": SEARCH_FIELDS,
     },
     body: JSON.stringify(body),
-    next: { revalidate: 86400 },
+    ...(pageToken ? { cache: "no-store" } : { next: { revalidate: 86400 } }),
   });
 
   if (!res.ok) {
