@@ -27,6 +27,7 @@ export interface Place {
 
 export interface PlaceDetail extends Place {
   koreanReviews: KoreanReview[];
+  recentReviews?: KoreanReview[];
   summary: string | null;
   localName?: string;
   phoneNumber?: string;

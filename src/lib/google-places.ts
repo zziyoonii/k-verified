@@ -144,7 +144,7 @@ export async function searchPlaces(
       "X-Goog-FieldMask": SEARCH_FIELDS,
     },
     body: JSON.stringify(body),
-    ...(pageToken ? { cache: "no-store" } : { next: { revalidate: 86400 } }),
+    ...(pageToken ? { cache: "no-store" } : { next: { revalidate: 300 } }),
   });
 
   if (!res.ok) {
@@ -195,9 +195,25 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   const koreanReviews = extractKoreanReviews(p.reviews ?? []);
   const base = toPlace(p, koreanReviews);
 
+  const recentReviews = koreanReviews.length === 0
+    ? (p.reviews ?? [])
+        .filter((r) => r.text?.text || r.originalText?.text)
+        .map((r, idx) => ({
+          reviewId: `${r.publishTime ?? idx}-${idx}`,
+          authorName: r.authorAttribution?.displayName ?? "익명",
+          rating: r.rating,
+          text: r.originalText?.text ?? r.text?.text ?? "",
+          time: r.publishTime ? new Date(r.publishTime).getTime() / 1000 : 0,
+          relativeTimeDescription: r.relativePublishTimeDescription,
+        }))
+        .sort((a, b) => b.time - a.time)
+        .slice(0, 5)
+    : undefined;
+
   return {
     ...base,
     koreanReviews,
+    recentReviews,
     summary: null,
     localName,
     phoneNumber: p.nationalPhoneNumber,

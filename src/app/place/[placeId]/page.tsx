@@ -126,9 +126,38 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
         </h2>
 
         {place.koreanReviews.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">
-            한국인 리뷰가 없습니다.
-          </p>
+          place.recentReviews && place.recentReviews.length > 0 ? (
+            <>
+              <p className="text-xs text-gray-400 mb-3">한국인 리뷰가 없어 최신 리뷰를 표시합니다.</p>
+              <div className="space-y-3">
+                {place.recentReviews.map((review) => (
+                  <div
+                    key={review.reviewId}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-600">
+                        {maskName(review.authorName)}
+                      </span>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <span className="text-yellow-400">★</span>
+                        <span>{review.rating}</span>
+                        <span className="ml-1 text-gray-300">·</span>
+                        <span>{review.relativeTimeDescription}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {review.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-8">
+              한국인 리뷰가 없습니다.
+            </p>
+          )
         ) : (
           <div className="space-y-3">
             {[...place.koreanReviews].sort((a, b) => b.time - a.time).map((review) => (

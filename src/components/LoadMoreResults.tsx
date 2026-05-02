@@ -127,7 +127,7 @@ export default function LoadMoreResults({
             검색된 {totalCount}곳 중 {withKorean.length}곳에 한국인 리뷰 있음
           </p>
 
-          {showCategories && availableTabs.length > 2 && (
+          {showCategories && availableTabs.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
               {availableTabs.map((tab) => (
                 <button
