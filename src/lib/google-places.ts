@@ -42,12 +42,21 @@ const PRICE_MAP: Record<string, number> = {
   PRICE_LEVEL_VERY_EXPENSIVE: 4,
 };
 
+const RECENT_REVIEW_MONTHS = 3;
+
+function isRecentReview(publishTime?: string): boolean {
+  if (!publishTime) return true;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - RECENT_REVIEW_MONTHS);
+  return new Date(publishTime) >= cutoff;
+}
+
 function extractKoreanReviews(reviews: NewReview[]): KoreanReview[] {
   return reviews
     .filter((r) => {
       const text = r.originalText?.text ?? r.text?.text ?? "";
       const lang = r.originalText?.languageCode ?? r.text?.languageCode;
-      return text && isKoreanReview(text, lang);
+      return text && isKoreanReview(text, lang) && isRecentReview(r.publishTime);
     })
     .map((r, idx) => ({
       reviewId: `${r.publishTime ?? idx}-${idx}`,

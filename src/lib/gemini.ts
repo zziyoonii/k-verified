@@ -9,11 +9,11 @@ const SUMMARY_PROMPT = `당신은 한국인 여행자를 위한 맛집/마사지
 
 반드시 한국어로 작성하고, 각 줄은 간결하게 1~2문장으로 작성해주세요.`;
 
-// 우선순위 순으로 시도할 모델 목록 (무료 티어 우선)
+// 무료 티어 토큰 비용 낮은 순서로 시도
 const MODELS = [
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
   "gemini-2.0-flash-lite",
+  "gemini-1.5-flash-8b",
+  "gemini-1.5-flash",
   "gemini-2.0-flash",
 ];
 
@@ -38,8 +38,11 @@ async function callGemini(reviews: string[]): Promise<string | null> {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[Gemini] 모델 ${modelName} 실패:`, msg);
-      // 404(모델 없음) 또는 429(할당량 초과)면 다음 모델 시도
-      if (!msg.includes("404") && !msg.includes("429")) break;
+      const isModelNotFound = msg.includes("404");
+      // 월간 지출 한도 초과는 프로젝트 전체 제한이므로 다른 모델 시도해도 무의미
+      const isSpendingCap = msg.includes("spending cap");
+      const isRateLimit = msg.includes("429") && !isSpendingCap;
+      if (!isModelNotFound && !isRateLimit) break;
     }
   }
 

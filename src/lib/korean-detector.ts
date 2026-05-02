@@ -33,7 +33,7 @@ export function isKoreanReview(
 export function assignBadge(
   koreanReviewCount: number
 ): "발견" | "검증" | "강력추천" | null {
-  if (koreanReviewCount >= 6) return "강력추천";
+  if (koreanReviewCount >= 5) return "강력추천";
   if (koreanReviewCount >= 3) return "검증";
   if (koreanReviewCount >= 1) return "발견";
   return null;

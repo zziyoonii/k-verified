@@ -131,7 +131,7 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
           </p>
         ) : (
           <div className="space-y-3">
-            {place.koreanReviews.map((review) => (
+            {[...place.koreanReviews].sort((a, b) => b.time - a.time).map((review) => (
               <div
                 key={review.reviewId}
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2"

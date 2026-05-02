@@ -75,9 +75,9 @@ export default function HomePage() {
 
       <div className="grid grid-cols-3 gap-4 w-full max-w-xl mt-2">
         {[
-          { emoji: "🔍", label: "발견", desc: "한국인 리뷰 1~2개" },
-          { emoji: "✅", label: "검증", desc: "한국인 리뷰 3~5개" },
-          { emoji: "🔥", label: "강력추천", desc: "한국인 리뷰 6개 이상" },
+          { emoji: "🔍", label: "발견", desc: "최근 3개월 한국인 리뷰 1~2개" },
+          { emoji: "✅", label: "검증", desc: "최근 3개월 한국인 리뷰 3~4개" },
+          { emoji: "🔥", label: "강력추천", desc: "최근 3개월 한국인 리뷰 5개" },
         ].map((badge) => (
           <div
             key={badge.label}

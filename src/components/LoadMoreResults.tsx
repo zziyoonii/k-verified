@@ -45,11 +45,11 @@ function InfoTooltip() {
       {open && (
         <div className="absolute left-0 top-5 z-10 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs text-gray-600 space-y-1.5">
           <p className="font-semibold text-gray-800 mb-1">한국인 리뷰 기준</p>
-          <p>구글은 장소당 최대 <strong>5개</strong> 리뷰만 제공합니다. 리뷰는 <strong>24시간마다</strong> 최신화됩니다.</p>
+          <p>구글이 제공하는 최대 <strong>5개</strong> 리뷰 중 <strong>최근 3개월</strong> 이내 한국인 리뷰를 기준으로 합니다. 데이터는 <strong>24시간마다</strong> 갱신됩니다.</p>
           <div className="pt-1 border-t border-gray-100 space-y-0.5">
-            <p>🔥 <strong>강력추천</strong> — 한국인 리뷰 6개 이상</p>
-            <p>✅ <strong>검증</strong> — 3개 이상</p>
-            <p>🔍 <strong>발견</strong> — 1개 이상</p>
+            <p>🔥 <strong>강력추천</strong> — 최근 3개월 한국인 리뷰 5개</p>
+            <p>✅ <strong>검증</strong> — 최근 3개월 한국인 리뷰 3~4개</p>
+            <p>🔍 <strong>발견</strong> — 최근 3개월 한국인 리뷰 1~2개</p>
           </div>
           <button onClick={() => setOpen(false)} className="mt-1 text-gray-400 hover:text-gray-600">닫기</button>
         </div>
