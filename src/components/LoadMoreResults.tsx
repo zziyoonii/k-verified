@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import PlaceCard from "@/components/PlaceCard";
 import { Place } from "@/types";
 
@@ -68,6 +68,9 @@ export default function LoadMoreResults({
   const [places, setPlaces] = useState<Place[]>(initialPlaces);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(initialNextPageToken);
   const [loading, setLoading] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("전체");
+
+  const showCategories = !cat.trim();
 
   async function loadMore() {
     if (!nextPageToken || loading) return;
@@ -88,20 +91,23 @@ export default function LoadMoreResults({
   const withKorean = places.filter((p) => p.badge !== null);
   const withoutKorean = places.filter((p) => p.badge === null);
 
-  // 카테고리 없이 도시만 검색한 경우 카테고리별 그룹핑
-  const showCategories = !cat.trim();
-
-  const grouped: Record<string, Place[]> = {};
-  if (showCategories) {
+  // 실제 결과에 존재하는 카테고리만 탭으로 표시
+  const availableTabs = useMemo(() => {
+    if (!showCategories) return [];
+    const seen = new Set<string>();
     for (const place of withKorean) {
-      const cat = getPrimaryCategory(place.types ?? []);
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(place);
+      seen.add(getPrimaryCategory(place.types ?? []));
     }
-  }
+    return ["전체", ...CATEGORY_ORDER.filter((c) => seen.has(c))];
+  }, [withKorean, showCategories]);
+
+  const filteredKorean = useMemo(() => {
+    if (!showCategories || selectedTab === "전체") return withKorean;
+    return withKorean.filter((p) => getPrimaryCategory(p.types ?? []) === selectedTab);
+  }, [withKorean, selectedTab, showCategories]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {withKorean.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-brand-600 mb-3">
@@ -109,28 +115,38 @@ export default function LoadMoreResults({
             <InfoTooltip />
           </h2>
 
-          {showCategories ? (
-            <div className="space-y-5">
-              {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((categoryName) => (
-                <div key={categoryName}>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                    {categoryName}
-                  </p>
-                  <div className="space-y-3">
-                    {grouped[categoryName].map((place) => (
-                      <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {withKorean.map((place) => (
-                <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
+          {/* 카테고리 탭 — 도시만 검색한 경우 */}
+          {showCategories && availableTabs.length > 2 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+              {availableTabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedTab(tab)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    selectedTab === tab
+                      ? "bg-brand-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab}
+                  {tab !== "전체" && (
+                    <span className="ml-1 text-xs opacity-70">
+                      {withKorean.filter((p) => getPrimaryCategory(p.types ?? []) === tab).length}
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
           )}
+
+          <div className="space-y-3">
+            {filteredKorean.map((place) => (
+              <PlaceCard key={place.placeId} place={place} dest={dest} cat={cat} />
+            ))}
+            {filteredKorean.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6">해당 카테고리 결과가 없습니다.</p>
+            )}
+          </div>
         </section>
       )}
 
