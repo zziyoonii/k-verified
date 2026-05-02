@@ -76,7 +76,14 @@ export default async function PlacePage({ params, searchParams }: PlacePageProps
           <Badge level={place.badge} count={place.koreanReviewCount} />
         )}
 
-        <p className="text-sm text-gray-500">{place.address}</p>
+        <a
+          href={`https://www.google.com/maps/place/?q=place_id:${params.placeId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-gray-500 hover:text-brand-600 hover:underline block"
+        >
+          📍 {place.address}
+        </a>
 
         {place.priceLevel !== undefined && (
           <PriceLevel level={place.priceLevel} />

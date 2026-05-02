@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-[1001] bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-xl font-bold text-brand-600">K-Verified</span>

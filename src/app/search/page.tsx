@@ -80,6 +80,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
             검색 결과
           </p>
           <Suspense
+            key={`${dest}-${cat}`}
             fallback={
               <div className="space-y-3">
                 <div className="h-[420px] bg-gray-100 rounded-2xl animate-pulse" />
